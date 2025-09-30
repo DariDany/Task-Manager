@@ -56,7 +56,7 @@ class Projects(View):
         return redirect('boards')
 
 
-class MangeProject(View):
+class ManageProject(View):
     def post(self, request, id):
         Project.objects.filter(id=id).delete()
 
@@ -72,7 +72,8 @@ class Tasks(View):
 
         proj = Project.objects.filter(id=id).first()
         user = request.user
-        users = User.objects.filter(Q(id__in=proj.get_members()) | Q(id=proj.owner.id))
+        users = User.objects.filter(
+            Q(id__in=proj.get_members()) | Q(id=proj.owner.id))
         data = {"user": user,
                 "first": user.username[0],
                 "other_users": users,
@@ -99,7 +100,7 @@ class Tasks(View):
         return redirect('tasks', id=id)
 
 
-class ManegeTasks(View):
+class ManageTasks(View):
     def post(self, request, id):
         if not request.user.is_authenticated:
             response = JsonResponse({"error": "Invalid User"})
@@ -121,7 +122,8 @@ class ManegeTasks(View):
                     task.save()
 
                 else:
-                    response = JsonResponse({"error": "You Do Not Have Permission"})
+                    response = JsonResponse(
+                        {"error": "You Do Not Have Permission"})
                     response.status_code = 403
                     return response
             else:
@@ -131,7 +133,8 @@ class ManegeTasks(View):
                         task.start_time = datetime.datetime.today().date()
                     task.save()
                 else:
-                    response = JsonResponse({"error": "You Do Not Have Permission"})
+                    response = JsonResponse(
+                        {"error": "You Do Not Have Permission"})
                     response.status_code = 403
                     return response
 
@@ -155,6 +158,7 @@ class ManegeTasks(View):
                 return response
 
             else:
-                response = JsonResponse({"error": "You Do Not Have Permission"})
+                response = JsonResponse(
+                    {"error": "You Do Not Have Permission"})
                 response.status_code = 403
                 return response

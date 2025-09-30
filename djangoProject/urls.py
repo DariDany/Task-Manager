@@ -16,9 +16,9 @@ Including another URLconf
 from django.urls import path, include
 
 urlpatterns = [
-    path('', include('users.urls')),
-    path('boards/', include('task_manager.urls')),
-    path('report/', include('reports.urls'))
+    path('', include('users.urls')),  # маршрут юзерс
+    path('boards/', include('task_manager.urls')),  # маршрут таск менеджера
+    path('report/', include('reports.urls'))  # маршрут репорту
 ]
 
 # handler404 = 'djangoProject.errorViews.handler404'
