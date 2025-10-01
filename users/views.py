@@ -62,7 +62,8 @@ class SignUp(View):
             return redirect('boards')
 
         except:
-            response = JsonResponse({"error": "Duplicate User or Server error"})
+            response = JsonResponse(
+                {"error": "Duplicate User or Server error"})
             response.status_code = 403
             return response
 
@@ -71,3 +72,16 @@ class SignOut(View):
     def get(self, request):
         logout(request)
         return redirect('signIn')
+
+
+class ProfileView(View):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('signIn')
+
+        first_letter = request.user.username[0].upper(
+        ) if request.user.username else ""
+        return render(request, 'profile.html', {
+            "user": request.user,
+            "first": first_letter
+        })
