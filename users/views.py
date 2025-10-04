@@ -62,7 +62,8 @@ class SignUp(View):
             return redirect('boards')
 
         except:
-            response = JsonResponse({"error": "Duplicate User or Server error"})
+            response = JsonResponse(
+                {"error": "Duplicate User or Server error"})
             response.status_code = 403
             return response
 
@@ -71,3 +72,35 @@ class SignOut(View):
     def get(self, request):
         logout(request)
         return redirect('signIn')
+
+
+class ProfileView(View):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('signIn')
+        first_letter = request.user.username[0].upper(
+        ) if request.user.username else ""
+        return render(request, 'profile.html', {
+            "user": request.user,
+            "first": first_letter
+        })
+
+    def post(self, request):
+        user = request.user
+        username = request.POST.get("username")
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        avatar = request.FILES.get("profile_photo")
+
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        if password:
+            user.set_password(password)
+        if avatar:
+            user.profile.profile_photo = avatar  # предполагаю, что у тебя есть profile model
+
+        user.save()
+        user.profile.save()
+        return redirect("profile")

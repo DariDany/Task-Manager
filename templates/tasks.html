@@ -26,7 +26,7 @@
                         <div class="d-flex align-items-center font-weight-bold my-2">
                             <!--begin::Item-->
                             <a href="/boards" class="opacity-75 hover-opacity-100">
-                                <i class="flaticon2-shelter text-white icon-1x"></i>
+                                <i class="fa-solid fa-house text-white fa-sm"></i>
                             </a>
                             <!--end::Item-->
                         </div>
@@ -71,7 +71,7 @@
                                                     Task</h5>
                                                 <button type="button" class="close" data-dismiss="modal"
                                                         aria-label="Close">
-                                                    <i aria-hidden="true" class="ki ki-close"></i>
+                                                    <i class="fa-solid fa-x text-black fa-sm"></i>
                                                 </button>
                                             </div>
                                             <div class="modal-body">
@@ -165,14 +165,16 @@
                             <h5 class="modal-title" id="exampleModalLabel">{{ t.description }}</h5>
                             <button type="button" class="close" data-dismiss="modal"
                                     aria-label="Close">
-                                <i aria-hidden="true" class="ki ki-close"></i>
+                                <i class="fa-solid fa-x text-black fa-sm"></i>
                             </button>
                         </div>
                         <div class="modal-body">
                             <div class="d-flex align-items-center">
                                 <div class="symbol symbol-100 mr-5">
                                     <div class="symbol-label"
-                                         style="background-image:url({% static t.assigned_to.profile.profile_photo %})"></div>
+                                        style="background-image: url('{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}'); 
+                                                background-size: cover; background-position: center;">
+                                    </div>
                                     <i class="symbol-badge bg-success"></i>
                                 </div>
                                 <div class="d-flex flex-column">
@@ -248,14 +250,15 @@
                                             'id': {{ t.id }},
                                             'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-dark font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                         },
                                     {% endif %}
                                 {% endfor %}
@@ -271,14 +274,15 @@
                                         'id': {{ t.id }},
                                         'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-success font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                     },
                                 {% endif %}
                             {% endfor %}
@@ -294,14 +298,15 @@
                                         'id': {{ t.id }},
                                         'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-warning font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                     },
                                 {% endif %}
                             {% endfor %}
@@ -317,14 +322,15 @@
                                         'id': {{ t.id }},
                                         'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-primary font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                     },
                                 {% endif %}
                             {% endfor %}
@@ -340,14 +346,15 @@
                                         'id': {{ t.id }},
                                         'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-danger font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                     },
                                 {% endif %}
                             {% endfor %}
@@ -363,14 +370,15 @@
                                         'id': {{ t.id }},
                                         'title': `
                                 <div class="d-flex align-items-center">
-                        	        <div class="symbol symbol-success mr-3">
-                        	            <img alt="Pic" src="{% static t.assigned_to.profile.profile_photo %}" />
-                        	        </div>
-                        	        <div class="d-flex flex-column align-items-start">
-                        	            <span class="text-dark-50 font-weight-bold mb-1">{{t.name}}</span>
-                        	            <span class="label label-inline label-light-danger font-weight-bold">{{t.end_time}}</span>
-                        	        </div>
-                        	    </div>`
+                                    <div class="symbol symbol-success mr-3">
+                                        <img alt="Pic" 
+                                            src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
+                                    </div>
+                                    <div class="d-flex flex-column align-items-start">
+                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                    </div>
+                                </div>`
                                     },
                                 {% endif %}
                             {% endfor %}
