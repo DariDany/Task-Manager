@@ -68,29 +68,93 @@
                 <!--end::Header-->
 
                 {% block body %}
-                    <!--begin::Content-->
-                    <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
-                        <!--begin::Subheader-->
-                        <div class="subheader py-2 py-lg-12 subheader-transparent" id="kt_subheader">
-                            <div class="container d-flex align-items-center justify-content-between flex-wrap flex-sm-nowrap">
-                                <!--begin::Info-->
-                                <div class="d-flex align-items-center flex-wrap mr-1">
-                                    <!--begin::Heading-->
-                                    <div class="d-flex flex-column">
-                                        <!--begin::Title-->
-                                        <h2 class="text-white font-weight-bold my-2 mr-5">My Profile</h2>
-                                        <h5 class="text-success font-weight-bold">Manage Your Profile
-                                            Here</h5>
-                                        <!--end::Title-->
-                                    </div>
-                                    <!--end::Heading-->
+                <div class="content d-flex flex-column flex-column-fluid" id="kt_content">
+                    <div class="subheader py-2 py-lg-12 subheader-transparent" id="kt_subheader">
+                        <div class="container d-flex align-items-center justify-content-between flex-wrap flex-sm-nowrap">
+                            <div class="d-flex flex-column">
+                                <h2 class="text-white font-weight-bold my-2 mr-5">My Profile</h2>
+                                <h5 class="text-success font-weight-bold">Manage Your Profile Here</h5>
+                                <!--begin::Breadcrumb-->
+                                <div class="d-flex align-items-center font-weight-bold my-2">
+                                    <!--begin::Item-->
+                                    <a href="/boards" class="opacity-75 hover-opacity-100">
+                                        <i class="fa-solid fa-house text-white fa-sm"></i>
+                                    </a>
+                                    <!--end::Item-->
                                 </div>
-                                <!--end::Info-->
+                                <!--end::Breadcrumb-->
                             </div>
                         </div>
                     </div>
-                    
-                {% endblock %}
+
+                    <div class="container mt-10">
+                        <form class="form" method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <div class="row">
+                                <!-- ЛЕВАЯ ЧАСТЬ (Фото профиля) -->
+                                <div class="col-md-4">
+                                    <div class="card card-custom">
+                                        <div class="card-body text-center">
+                                            <div class="image-input image-input-outline" id="kt_profile_photo"
+                                                style="background-image: url('{% if user.profile.profile_photo %}{{ user.profile.profile_photo.url }}{% endif %}');">
+                                                <div class="image-input-wrapper"
+                                                   style="background-image: url('{% if user.profile.profile_photo %}{{ user.profile.profile_photo.url }}{% endif %}');"> </div>
+                                                <label class="btn btn-xs btn-icon btn-circle btn-white btn-hover-text-primary btn-shadow"
+                                                    data-action="change" data-toggle="tooltip" title="Change avatar">
+                                                    <i class="fa fa-pen icon-sm text-muted"></i>
+                                                    <input type="file" name="profile_photo" accept=".png, .jpg, .jpeg"/>
+                                                    <input type="hidden" name="profile_photo_remove"/>
+                                                </label>
+                                                <span class="btn btn-xs btn-icon btn-circle btn-white btn-hover-text-primary btn-shadow"
+                                                    data-action="cancel" data-toggle="tooltip" title="Cancel avatar">
+                                                    <i class="ki ki-bold-close icon-xs text-muted"></i>
+                                                </span>
+                                            </div>
+                                            <span class="form-text text-muted">Allowed file types: png, jpg, jpeg.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ПРАВАЯ ЧАСТЬ (Форма данных пользователя) -->
+                                <div class="col-md-8">
+                                    <div class="card card-custom">
+                                        <div class="card-header">
+                                            <h3 class="card-title">Edit Profile</h3>
+                                        </div>
+                                        <div class="card-body">
+                                            <!-- Username -->
+                                            <div class="form-group">
+                                                <label>Username</label>
+                                                <input type="text" name="username" class="form-control form-control-lg"
+                                                    value="{{ user.username }}" required/>
+                                            </div>
+                                            <!-- Email -->
+                                            <div class="form-group">
+                                                <label>Email</label>
+                                                <input type="email" name="email" class="form-control form-control-lg"
+                                                    value="{{ user.email }}" required/>
+                                            </div>
+                                            <!-- Password -->
+                                            <div class="form-group">
+                                                <label>Password</label>
+                                                <input type="password" name="password"
+                                                    class="form-control form-control-lg"
+                                                    placeholder="Enter new password"/>
+                                                <span class="form-text text-muted">Leave blank if you don't want to change.</span>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button type="submit" class="btn btn-primary mr-2">Save Changes</button>
+                                            <a href="{% url 'profile' %}" class="btn btn-secondary">Cancel</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            {% endblock %}
                 <!--begin::Footer-->
                 <div class="footer bg-white py-4 d-flex flex-lg-column" id="kt_footer">
                     <!--begin::Container-->
@@ -134,10 +198,13 @@
             <!--begin::Header-->
             <div class="d-flex align-items-center mt-5">
                 <div class="symbol symbol-100 mr-5">
-                    <div class="symbol-label"
-                         style="background-image:url({% static user.profile.profile_photo %})"></div>
+                    <div class="symbol-label" 
+                        style="background-image: url('{% if user.profile.profile_photo %}{{ user.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}');
+                                background-size: cover; background-position: center;">
+                    </div>
                     <i class="symbol-badge bg-success"></i>
                 </div>
+
                 <div class="d-flex flex-column">
                     <a href="#"
                        class="font-weight-bold font-size-h5 text-dark-75 text-hover-primary">{{ user.username }}</a>

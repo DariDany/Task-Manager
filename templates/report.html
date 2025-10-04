@@ -36,7 +36,9 @@
                                     <div class="d-flex align-items-center">
                                         <div class="symbol symbol-50 mr-5">
                                             <div class="symbol-label"
-                                                 style="background-image:url({% static user.profile.profile_photo %})"></div>
+                                                style="background-image: url('{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}'); 
+                                                        background-size: cover; background-position: center;">
+                                            </div>
                                         </div>
                                         <div class="d-flex flex-column">
                                             <a href="#"
