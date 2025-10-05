@@ -10,6 +10,7 @@ from django.views import View
 
 from reports.models import ProjectInfo
 from .models import Task, Project
+from django.urls import reverse
 
 
 class Projects(View):
@@ -162,3 +163,85 @@ class ManageTasks(View):
                     {"error": "You Do Not Have Permission"})
                 response.status_code = 403
                 return response
+            
+class MyTasksAll(View):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('signIn')
+
+        tasks = (
+            Task.objects
+                .select_related('project')
+                .filter(assigned_to=request.user)
+                .order_by('status', 'end_time', 'project__name', 'id')
+        )
+        ctx = {"user": request.user, "first": request.user.username[0], "tasks": tasks}
+        return render(request, 'my_tasks_all.html', ctx)
+    
+class ToggleTask(View):
+    """Перемикання статусу задачі з чекбокса (між To Do 'T' і Done 'O')."""
+    def post(self, request, id):
+        if not request.user.is_authenticated:
+            return redirect('signIn')
+
+        task = Task.objects.select_related('project').filter(id=id).first()
+        if not task:
+            return redirect('my_tasks_all')
+
+        # дозволяємо змінювати лише виконавцю або власнику проєкту
+        if task.assigned_to != request.user and task.project.owner != request.user:
+            return redirect('my_tasks_all')
+
+        done_checked = (request.POST.get('done') == 'on')
+        task.status = 'O' if done_checked else 'T'
+        task.save()
+
+        # повертаємось туди, звідки прийшли (якщо передали), або на my_tasks_all
+        next_url = request.POST.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('my_tasks_all')
+class SetTaskStatus(View):
+    """
+    Change task status from the My Tasks page.
+
+    Accepts either:
+      - checkbox 'done' (on/off)  -> sets 'O' or 'T'
+      - select 'new_status' in {'T','D','I','O'}
+
+    Only the assignee OR the project owner may change it.
+    """
+    ALLOWED = {'T', 'D', 'I', 'O'}  # To Do, Doing, In Test, Done
+
+    def post(self, request, id):
+        if not request.user.is_authenticated:
+            return redirect('signIn')
+
+        task = Task.objects.select_related('project', 'assigned_to').filter(id=id).first()
+        if not task:
+            return redirect('my_tasks_all')
+
+        if task.assigned_to != request.user and task.project.owner != request.user:
+            return redirect('my_tasks_all')
+
+        # 1) handle checkbox "done"
+        if request.POST.get('done') is not None:
+            done_checked = (request.POST.get('done') == 'on')
+            new_status = 'O' if done_checked else 'T'
+        else:
+            # 2) handle dropdown "new_status"
+            new_status = request.POST.get('new_status', '').strip()
+
+        if new_status not in self.ALLOWED:
+            return redirect('my_tasks_all')
+
+        # convenience: set/clear start_time when moving to Doing/To Do
+        if new_status == 'D' and not task.start_time:
+            task.start_time = datetime.date.today()
+        if new_status == 'T':
+            task.start_time = None
+
+        task.status = new_status
+        task.save()
+
+        return redirect(request.POST.get('next') or 'my_tasks_all')
