@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}My Tasks{% endblock %}
+
+{% block content %}
+<div class="container mt-10">
+  <div class="d-flex align-items-center mb-6">
+    <h2 class="text-white font-weight-bold my-2 mr-5">My tasks</h2>
+    <a class="btn btn-sm btn-light ml-3" href="{% url 'boards' %}">All Boards</a>
+  </div>
+
+  {% if tasks %}
+    {% regroup tasks by project as project_groups %}
+
+    {% for group in project_groups %}
+      <div class="card card-custom mb-6 shadow-sm">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <h4 class="card-title font-weight-bold mb-1 text-primary">Project: {{ group.grouper.name }}</h4>
+            <span class="badge badge-purple text-uppercase px-3 py-1">{{ group.grouper.description }}</span>
+          </div>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'tasks' group.grouper.id %}">Open Board</a>
+        </div>
+
+        <ul class="list-group list-group-flush">
+          {% for t in group.list %}
+            <li class="list-group-item d-flex justify-content-between align-items-start flex-column flex-sm-row">
+              <!-- CHECKBOX -->
+              <form action="{% url 'set_task_status' t.id %}" method="post" id="done-form-{{ t.id }}" class="mr-3 mt-1">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'my_tasks_all' %}">
+                <input type="checkbox" name="done"
+                       onchange="document.getElementById('done-form-{{ t.id }}').submit();"
+                       {% if t.status == 'O' %}checked{% endif %}>
+              </form>
+
+              <!-- TASK CONTENT -->
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="font-weight-bold {% if t.status == 'O' %}text-muted{% endif %}">
+                    {{ t.name }}
+                    <span class="badge ml-2
+                        {% if t.status == 'T' %}badge-warning
+                        {% elif t.status == 'D' %}badge-primary
+                        {% elif t.status == 'I' %}badge-secondary
+                        {% elif t.status == 'O' %}badge-success
+                        {% endif %}">
+                      {{ t.get_status_display }}
+                    </span>
+                  </div>
+                  <!-- DROPDOWN -->
+                  <form action="{% url 'set_task_status' t.id %}" method="post" class="d-inline-block ml-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'my_tasks_all' %}">
+                    <select name="new_status" class="form-control form-control-sm"
+                            onchange="this.form.submit()">
+                      <option value="T" {% if t.status == 'T' %}selected{% endif %}>To Do</option>
+                      <option value="D" {% if t.status == 'D' %}selected{% endif %}>Doing</option>
+                      <option value="I" {% if t.status == 'I' %}selected{% endif %}>In Test</option>
+                      <option value="O" {% if t.status == 'O' %}selected{% endif %}>Done</option>
+                    </select>
+                  </form>
+                </div>
+
+                <!-- DESCRIPTION -->
+                <div class="text-muted small mt-1 mb-1">{{ t.description }}</div>
+
+                <!-- TASK META -->
+                <div class="d-flex flex-wrap small mt-1">
+                  <div class="mr-3">
+                    <span class="text-muted font-weight-bold">Assigned to:</span>
+                    <span class="badge badge-light">{{ t.assigned_to.username }}</span>
+                  </div>
+                  <div class="mr-3">
+                    <span class="text-muted font-weight-bold">Start:</span>
+                    <span class="badge badge-light">
+                      {{ t.start_time|default:"—" }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-muted font-weight-bold">Due:</span>
+                    <span class="badge badge-warning">
+                      {{ t.end_time|date:"M d, Y" }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-light">You don’t have any assigned tasks yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,5 @@
+# Ігноруємо Django-шаблони
+*.html
+templates/**/*.html
+
+
