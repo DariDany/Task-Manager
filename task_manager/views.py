@@ -74,10 +74,12 @@ class Tasks(View):
         user = request.user
         users = User.objects.filter(
             Q(id__in=proj.get_members()) | Q(id=proj.owner.id))
+        tasks = proj.task_set.all()
         data = {"user": user,
                 "first": user.username[0],
                 "other_users": users,
-                "tasks": proj.task_set.all(),
+                "tasks": tasks,
+                "other_tasks": tasks,
                 'proj': proj,
                 "can_add": user == proj.owner
                 }
@@ -91,11 +93,19 @@ class Tasks(View):
         description = request.POST['desc']
         assigned_to = request.POST['users']
         status = 'T'
+        start_time = request.POST.get('start_time')
         end_time = request.POST['date']
+        predecessor_id = request.POST.get('predecessor')
 
-        task = Task(name=name, description=description, assigned_to_id=assigned_to, status=status,
+        task = Task(name=name, description=description, assigned_to_id=assigned_to, status=status, start_time=start_time,
                     end_time=end_time, project_id=id)
         task.save()
+        # Якщо обрано попередника — зберігаємо зв’язок
+        if predecessor_id and predecessor_id != "none":
+            predecessor_task = Task.objects.filter(id=predecessor_id).first()
+            if predecessor_task:
+                task.predecessor = predecessor_task
+                task.save()
 
         return redirect('tasks', id=id)
 

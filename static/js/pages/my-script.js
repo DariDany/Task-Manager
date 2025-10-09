@@ -33,6 +33,16 @@ var KTFormWidgetsValidation = function () {
             validator.revalidateField('users');
         });
 
+        $('#kt_select2_4').select2({
+            placeholder: "Select a predecessor task",
+            allowClear: true
+        });
+
+        $('#kt_select2_4').on('change', function () {
+            // Revalidate field
+            validator.revalidateField('predecessor');
+        });
+
         $('#iname').on('change', function () {
             // Revalidate field
             validator.revalidateField('name');

@@ -91,6 +91,32 @@
                                                                placeholder="Details ...">
                                                     </div>
                                                     <div class="form-group">
+                                                        <label>Predecessor Task</label><br>    
+                                                        <select name="predecessor" style="width: 100%"
+                                                                class="form-control form-control-lg select2"
+                                                                id="kt_select2_4">
+                                                                <option value="none">— None —</option>
+                                                                {% for t in other_tasks %}
+                                                                    <option value="{{ t.id }}">{{ t.name }}</option>
+                                                                {% endfor %}
+                                                        </select>
+                                                    </div>    
+                                                    <div class="form-group">
+                                                        <label>Select Start Date
+                                                            <span class="text-danger">*</span></label>
+                                                        <div class="input-group date">
+                                                            <input name="start_time" type="text"
+                                                                class="form-control form-control-lg"
+                                                                id="kt_datepicker_start"/>
+                                                            <div class="input-group-append">
+                                                                <span class="input-group-text">
+                                                                    <i class="la la-calendar"></i>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <small id="startDateError" class="text-danger" style="display: none;">Start date cannot be earlier than predecessor's end date.</small>
+                                                    </div>
+                                                    <div class="form-group">
                                                         <label>Select DeadLine
                                                             <span class="text-danger">*</span></label>
                                                         <div class="input-group date">
@@ -103,14 +129,14 @@
                                                                </span>
                                                             </div>
                                                         </div>
+                                                        <small id="endDateError" class="text-danger" style="display: none;">End date cannot be earlier than start date.</small>
                                                     </div>
                                                     <div class="form-group">
                                                         <label>Select User
                                                             <span class="text-danger">*</span></label><br>
                                                         <select name="users" style="width: 100%"
                                                                 class="form-control form-control-lg select2"
-                                                                id="kt_select2_3"
-                                                                name="param">
+                                                                id="kt_select2_3">
                                                             {% for ou in other_users %}
                                                                 <option value="{{ ou.id }}">{{ ou.username }}</option>
                                                             {% endfor %}
@@ -255,8 +281,12 @@
                                             src="{% if t.assigned_to.profile.profile_photo %}{{ t.assigned_to.profile.profile_photo.url }}{% else %}/media/profiles/default.jpg{% endif %}" />
                                     </div>
                                     <div class="d-flex flex-column align-items-start">
-                                        <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
+                                        <span c
+                                        lass="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                         },
@@ -281,6 +311,9 @@
                                     <div class="d-flex flex-column align-items-start">
                                         <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                     },
@@ -305,6 +338,9 @@
                                     <div class="d-flex flex-column align-items-start">
                                         <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                     },
@@ -329,6 +365,9 @@
                                     <div class="d-flex flex-column align-items-start">
                                         <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                     },
@@ -353,6 +392,9 @@
                                     <div class="d-flex flex-column align-items-start">
                                         <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                     },
@@ -377,6 +419,9 @@
                                     <div class="d-flex flex-column align-items-start">
                                         <span class="text-dark-50 font-weight-bold mb-1">{{ t.name }}</span>
                                         <span class="label label-inline label-light-dark font-weight-bold">{{ t.end_time }}</span>
+                                        {% if t.predecessor %}
+                                            <span class="text-muted small mt-1">Depends on: {{ t.predecessor.name }}</span>
+                                        {% endif %}
                                     </div>
                                 </div>`
                                     },
@@ -561,5 +606,158 @@
             KTCalendarBasic.init();
         });
 
+        $(document).ready(function() {
+            // Перехватываем ошибку глобально
+            window.addEventListener('error', function(e) {
+                if (e.message.includes('updateFieldStatus') || 
+                    e.message.includes('Cannot read properties of undefined')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return true;
+                }
+            });
+
+            // Альтернативно: перехватываем unhandled rejection
+            window.addEventListener('unhandledrejection', function(e) {
+                if (e.reason && e.reason.message && 
+                    e.reason.message.includes('updateFieldStatus')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+
+            // Используем событие Select2 вместо обычного change
+            $('#kt_select2_4').on('input', function() {
+                const selectedId = $(this).val();
+                
+                if (selectedId === "none") {
+                    console.log("❌ Предшественник не выбран");
+                    return;
+                }
+
+                const tasks = [
+                    {% for t in other_tasks %}
+                        {
+                            id: '{{ t.id }}',
+                            name: '{{ t.name|escapejs }}',
+                            end_time: '{{ t.end_time|date:"Y-m-d" }}'
+                        },
+                    {% endfor %}
+                ];
+
+                const task = tasks.find(t => t.id.toString() === selectedId);
+                if (task) {
+                    console.log(`📅 Дедлайн предшественника (${task.name}): ${task.end_time}`);
+                } else {
+                    console.warn("⚠️ Не найден предшественник с id:", selectedId);
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            
+            // Дата начала
+            $('#kt_datepicker_start').datepicker({
+                todayHighlight: true,
+                orientation: "bottom left",
+                autoclose: true,
+                format: 'yyyy-mm-dd'
+            });
+
+            // Дедлайн
+            $('#kt_datepicker_3').datepicker({
+                todayHighlight: true,
+                orientation: "bottom left",
+                autoclose: true,
+                format: 'yyyy-mm-dd'
+            });
+
+        });
+
+        $(document).ready(function() {
+            const tasks = [
+                {% for t in other_tasks %}
+                {
+                    id: '{{ t.id }}',
+                    name: '{{ t.name|escapejs }}',
+                    end_time: '{{ t.end_time|date:"Y-m-d" }}'
+                },
+                {% endfor %}
+            ];
+
+            function validateStartDate() {
+                const selectedPredecessorId = $('#kt_select2_4').val();
+                const startDateStr = $('#kt_datepicker_start').val();
+                const $error = $('#startDateError');
+                const $startInput = $('#kt_datepicker_start');
+
+                $error.hide();
+                $startInput.removeClass('is-invalid');
+
+                if (!selectedPredecessorId || selectedPredecessorId === 'none' || !startDateStr) {
+                    return true; // Нет предшественника или дата не выбрана
+                }
+
+                const predecessor = tasks.find(t => t.id.toString() === selectedPredecessorId);
+                if (!predecessor) return true;
+
+                const startDate = new Date(startDateStr);
+                const predEndDate = new Date(predecessor.end_time);
+
+                if (startDate < predEndDate) {
+                    $error.text(`Start date must be after predecessor's end date (${predecessor.end_time})`).show();
+                    $startInput.addClass('is-invalid'); // Добавляем красное выделение
+                    return false;
+                }
+
+                return true;
+            }
+
+            function validateEndDate() {
+                    const startDateStr = $('#kt_datepicker_start').val();
+                    const endDateStr = $('#kt_datepicker_3').val();
+                    const $error = $('#endDateError');
+                    const $endInput = $('#kt_datepicker_3');
+
+                    $error.hide();
+                    $endInput.removeClass('is-invalid');
+
+                    if (!startDateStr || !endDateStr) {
+                        return true; // Если какая-то дата не выбрана
+                    }
+
+                    const startDate = new Date(startDateStr);
+                    const endDate = new Date(endDateStr);
+
+                    if (endDate < startDate) {
+                        $error.text('End date cannot be earlier than start date').show();
+                        $endInput.addClass('is-invalid'); // Добавляем красное выделение
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                // Проверка при выборе предшественника
+                $('#kt_select2_4').on('change input', validateStartDate);
+
+                // Проверка при выборе даты начала
+                $('#kt_datepicker_start').on('change', function() {
+                    validateStartDate();
+                    validateEndDate();
+                });
+
+                // Проверка при выборе даты окончания
+                $('#kt_datepicker_3').on('change', validateEndDate);
+
+                // Проверка при сабмите формы
+                $('#add_board_from').on('submit', function(e) {
+                    if (!validateStartDate() || !validateEndDate()) {
+                        e.preventDefault(); // Отменяем отправку формы
+                    }
+                });
+
+            });
+        
     </script>
 {% endblock %}
