@@ -6,6 +6,26 @@
 {% block css %}
     <link href="{% static '/plugins/custom/kanban/kanban.bundle.css' %}" rel="stylesheet" type="text/css"/>
     <link href="{% static '/plugins/custom/fullcalendar/fullcalendar.bundle.css' %}" rel="stylesheet" type="text/css">
+    <style>
+        /*
+          This override ensures the Select2 dropdown arrow is visible inside a Bootstrap modal.
+          It uses an inline SVG as a background image for a clean, theme-consistent look.
+        */
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 100%;
+            width: 2.5rem;
+            right: 0;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%235E6278' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-color: transparent; /* Remove any background color */
+            border: none; /* Remove any borders */
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 1rem;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow b {
+            display: none; /* Hide the default 'b' element arrow */
+        }
+    </style>
 {% endblock %}
 
 {% block body %}
@@ -72,7 +92,7 @@
                                                 <button type="button" class="close" data-dismiss="modal"
                                                         aria-label="Close">
                                                     <i class="fa-solid fa-x text-black fa-sm"></i>
-                                                </button>
+                                                </button> 
                                             </div>
                                             <div class="modal-body">
                                                 <form id="add_board_from" method="post">{% csrf_token %}
@@ -110,7 +130,7 @@
                                                                 id="kt_datepicker_start"/>
                                                             <div class="input-group-append">
                                                                 <span class="input-group-text">
-                                                                    <i class="la la-calendar"></i>
+                                                                    <i class="fa-solid fa-calendar-days"></i>
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -125,12 +145,12 @@
                                                                    id="kt_datepicker_3"/>
                                                             <div class="input-group-append">
                                                                <span class="input-group-text">
-                                                                <i class="la la-calendar"></i>
+                                                                <i class="fa-solid fa-calendar-days"></i>
                                                                </span>
                                                             </div>
                                                         </div>
                                                         <small id="endDateError" class="text-danger" style="display: none;">End date cannot be earlier than start date.</small>
-                                                    </div>
+                                                    </div> 
                                                     <div class="form-group">
                                                         <label>Select User
                                                             <span class="text-danger">*</span></label><br>
@@ -191,7 +211,7 @@
                             <h5 class="modal-title" id="exampleModalLabel">{{ t.description }}</h5>
                             <button type="button" class="close" data-dismiss="modal"
                                     aria-label="Close">
-                                <i class="fa-solid fa-x text-black fa-sm"></i>
+                                <i class="fa-solid fa-xmark text-black fa-sm"></i>
                             </button>
                         </div>
                         <div class="modal-body">
@@ -210,20 +230,7 @@
                                         <a href="#" class="navi-item">
 								<span class="navi-link p-0 pb-2">
 									<span class="navi-icon mr-1">
-										<span class="svg-icon svg-icon-lg svg-icon-primary">
-											<!--begin::Svg Icon | path:/media/svg/icons/Communication/Mail-notification.svg-->
-											<svg xmlns="http://www.w3.org/2000/svg"
-                                                 xmlns:xlink="http://www.w3.org/1999/xlink" width="24px" height="24px"
-                                                 viewBox="0 0 24 24" version="1.1">
-												<g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-													<rect x="0" y="0" width="24" height="24"/>
-													<path d="M21,12.0829584 C20.6747915,12.0283988 20.3407122,12 20,12 C16.6862915,12 14,14.6862915 14,18 C14,18.3407122 14.0283988,18.6747915 14.0829584,19 L5,19 C3.8954305,19 3,18.1045695 3,17 L3,8 C3,6.8954305 3.8954305,6 5,6 L19,6 C20.1045695,6 21,6.8954305 21,8 L21,12.0829584 Z M18.1444251,7.83964668 L12,11.1481833 L5.85557487,7.83964668 C5.4908718,7.6432681 5.03602525,7.77972206 4.83964668,8.14442513 C4.6432681,8.5091282 4.77972206,8.96397475 5.14442513,9.16035332 L11.6444251,12.6603533 C11.8664074,12.7798822 12.1335926,12.7798822 12.3555749,12.6603533 L18.8555749,9.16035332 C19.2202779,8.96397475 19.3567319,8.5091282 19.1603533,8.14442513 C18.9639747,7.77972206 18.5091282,7.6432681 18.1444251,7.83964668 Z"
-                                                          fill="#000000"/>
-													<circle fill="#000000" opacity="0.3" cx="19.5" cy="17.5" r="2.5"/>
-												</g>
-											</svg>
-                                            <!--end::Svg Icon-->
-										</span>
+										<i class="fa-solid fa-envelope text-primary"></i>
 									</span>
 									<span class="navi-text text-muted text-hover-primary">{{ t.assigned_to.email }}</span>
 								</span>
@@ -249,6 +256,7 @@
     <script src="{% static '/plugins/custom/kanban/kanban.bundle.js' %}"></script>
     <script src="{% static '/plugins/custom/fullcalendar/fullcalendar.bundle.js' %}"></script>
     <script src="{% static '/js/pages/my-script.js' %}"></script>
+        
 
     <script>
         "use strict";
@@ -256,6 +264,45 @@
         // Class definition
         var KTKanbanBoardDemo = function () {
             // Private functions
+            const allTasks = [
+                {% for t in tasks %}
+                {
+                    id: '{{ t.id }}',
+                    name: '{{ t.name|escapejs }}',
+                    status: '{{ t.status }}',
+                    predecessor_id: {% if t.predecessor %}'{{ t.predecessor.id }}'{% else %}null{% endif %},
+                    predecessor_name: {% if t.predecessor %}'{{ t.predecessor.name|escapejs }}'{% else %}null{% endif %}
+                },
+                {% endfor %}
+            ];
+
+            const taskMap = new Map(allTasks.map(task => [task.id, task]));
+
+            // Helper function to update task status via AJAX
+            const updateTaskStatusOnServer = (taskId, newBoardId) => {
+                jQuery.ajax(`/boards/${taskId}/task`, {
+                    headers: {"X-CSRFToken": $(`{% csrf_token %}`).val()},
+                    type: 'POST',
+                    data: {
+                        type: "edit_status",
+                        task_id: taskId,
+                        board_id: newBoardId
+                    },
+                    success: function() {
+                        // Update local map on successful server update
+                        const task = taskMap.get(taskId.toString());
+                        if (task) {
+                            task.status = newBoardId;
+                        }
+                        console.log(`✅ Task ${taskId} status updated to ${newBoardId} on server.`);
+                    },
+                    error: function() {
+                        console.error(`❌ Failed to update status for task ${taskId}.`);
+                        // Optionally, revert the change in the UI or show an error
+                    }
+                });
+            };
+
             var _demo4 = function () {
                 var kanban = new jKanban({
                     element: '#kt_kanban_4',
@@ -263,6 +310,73 @@
                     click: function (el) {
                         let eid = $(el).data("eid");
                         $(`#task-details-${eid}`).modal('show');
+                    },
+                    dropEl: function (el, target, source, sibling) {
+                        const taskId = $(el).data("eid").toString();
+                        const sourceBoardId = $(source).parent().data("id");
+                        const targetBoardId = $(target).parent().data("id");
+
+                        // If the task is being moved from "To Do" to any other column
+                        if (sourceBoardId === 'T' && targetBoardId !== 'T') {
+                            const task = taskMap.get(taskId);
+                            if (task && task.predecessor_id) {
+                                const predecessor = taskMap.get(task.predecessor_id);
+
+                                // Check if the predecessor exists and is NOT in the "Done" column ('O')
+                                if (predecessor && predecessor.status !== 'O') {
+                                    // Show an error notification
+                                    $.notify({
+                                        message: `Cannot move this task. Its predecessor "${predecessor.name}" is not yet "Done".`
+                                    }, {
+                                        type: 'danger',
+                                        placement: { from: 'bottom', align: 'left' },
+                                        offset: { x: 30, y: 30 },
+                                    });
+
+                                    // Manually move the element back to the source board
+                                    // This is a smoother way to cancel the drag operation
+                                    kanban.removeElement(taskId);
+                                    kanban.addElement('T', { id: taskId, title: el.innerHTML });
+
+                                    // Set a flag to prevent the dragendEl event from firing
+                                    $(el).data('move-cancelled', true);
+                                    return; // Stop further execution
+                                }
+                            }
+                        }
+
+                        // --- NEW LOGIC ---
+                        // If a task is moved OUT of "Done"
+                        if (sourceBoardId === 'O' && targetBoardId !== 'O') {
+                            // Find all tasks that depend on the moved task
+                            taskMap.forEach(dependentTask => {
+                                if (dependentTask.predecessor_id === taskId && dependentTask.status !== 'T') {
+                                    console.log(`Task "${dependentTask.name}" depends on the reopened task. Moving it to "To Do".`);
+                                    
+                                    // Find the DOM element to get its content
+                                    const dependentEl = kanban.findElement(dependentTask.id);
+                                    if (dependentEl) {
+                                        // Move the element visually
+                                        kanban.removeElement(dependentTask.id);
+                                        kanban.addElement('T', { id: dependentTask.id, title: dependentEl.innerHTML });
+                                        // Update its status on the server
+                                        updateTaskStatusOnServer(dependentTask.id, 'T');
+
+                                        // Show a notification for the automatic move
+                                        $.notify({
+                                            message: `Task "${dependentTask.name}" moved to "To Do" as its dependency was reopened.`
+                                        }, {
+                                            type: 'info',
+                                            placement: { from: 'bottom', align: 'left' },
+                                            offset: { x: 30, y: 30 },
+                                            delay: 5000 // Show for 5 seconds
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                        // If move is valid, clear the flag
+                        $(el).data('move-cancelled', false);
                     },
                     boards: [
                         {
@@ -431,34 +545,16 @@
                         }
                     ],
                     dragendEl: function (el) {
-                        let eid = $(el).data("eid");
-                        let bid = $(el.parentElement.parentElement).data("id");
-                        jQuery.ajax(`/boards/${eid}/task`, {
-                            headers: {"X-CSRFToken": $(`{% csrf_token %}`).val()},
-                            type: 'POST',
-                            data: {
-                                "_token": "{{ csrf_token }}",
-                                type: "edit_status",
-                                task_id: eid,
-                                board_id: bid
-                            },
-                            error: (data) => {
-                                $('[data-switch=true]').bootstrapSwitch();
-                                let content = {};
-                                content.message = data.responseJSON.error;
-                                $.notify(content, {
-                                    type: 'danger',
-                                    placement: {
-                                        from: 'bottom',
-                                        align: 'left'
-                                    },
-                                    offset: {
-                                        x: 30,
-                                        y: 30
-                                    },
-                                });
-                            }
-                        });
+                        // Check if the move was cancelled by the dropEl validation
+                        if ($(el).data('move-cancelled')) {
+                            return;
+                        }
+
+                        const taskId = $(el).data("eid").toString();
+                        const newBoardId = $(el.parentElement.parentElement).data("id");
+                        
+                        // If validation passes, send the update to the server
+                        updateTaskStatusOnServer(taskId, newBoardId);
                     },
                 });
             }
@@ -472,134 +568,63 @@
         }();
 
         var KTCalendarBasic = function () {
-
             return {
-                //main function to initiate the module
                 init: function () {
                     var todayDate = moment().startOf('day');
-                    var YM = todayDate.format('YYYY-MM');
-                    var YESTERDAY = todayDate.clone().subtract(1, 'day').format('YYYY-MM-DD');
                     var TODAY = todayDate.format('YYYY-MM-DD');
-                    var TOMORROW = todayDate.clone().add(1, 'day').format('YYYY-MM-DD');
 
                     var calendarEl = document.getElementById('kt_calendar');
                     var calendar = new FullCalendar.Calendar(calendarEl, {
-                        plugins: ['bootstrap', 'interaction', 'dayGrid', 'timeGrid', 'list'],
-                        themeSystem: 'bootstrap',
-
-                        isRTL: KTUtil.isRTL(),
-
-                        header: {
+                        plugins: ['interaction', 'dayGrid', 'timeGrid', 'list'],
+                        themeSystem: 'standard',
+                        displayEventTime: false,
+                        headerToolbar: {
                             left: 'prev,next today',
                             center: 'title',
                             right: 'dayGridMonth,timeGridWeek,timeGridDay'
                         },
-
                         height: 800,
-                        contentHeight: 780,
-                        aspectRatio: 3,  // see: https://fullcalendar.io/docs/aspectRatio
-
                         nowIndicator: true,
-                        {#now: TODAY + 'T09:25:00', // just for demo#}
-
-                        views: {
-                            dayGridMonth: {buttonText: 'month'},
-                            timeGridWeek: {buttonText: 'week'},
-                            timeGridDay: {buttonText: 'day'}
-                        },
-
-                        defaultView: 'dayGridMonth',
-                        defaultDate: TODAY,
-
-                        editable: true,
-                        eventLimit: true, // allow "more" link when too many events
-                        navLinks: true,
+                        initialView: 'dayGridMonth',
+                        initialDate: TODAY,
+                        editable: false,
                         events: [
                             {% for t in tasks %}
                                 {
                                     id: '{{ t.id }}',
                                     title: '{{t.name}}',
-                                    start: new Date('{{ t.end_time }}'),
+                                    start: new Date('{{ t.start_time }}'),
                                     end: new Date('{{ t.end_time }}'),
                                     description: '{{t.description}}',
-                                    {% if t.status == 'T' %}
-                                        className: "fc-event-solid-warning fc-event-light",
-                                    {% endif %}
-                                    {% if t.status == 'D' %}
+                                    {% if t.assigned_to.id == user.id %}
                                         className: "fc-event-solid-primary fc-event-light",
+                                    {% else %}
+                                        className: "fc-event-solid-secondary fc-event-light",
                                     {% endif %}
-                                    {% if t.status == 'I' %}
-                                        className: "fc-event-solid-info fc-event-light",
-                                    {% endif %}
-                                    {% if t.status == 'O' %}
-                                        className: "fc-event-solid-success fc-event-light",
-                                    {% endif %}
-                                    {% if t.status == 'B' %}
-                                        className: "fc-event-solid-danger fc-event-light",
-                                    {% endif %}
-                                    {% if t.status == 'L' %}
-                                        className: "fc-event-solid-dark  fc-event-light",
-                                    {% endif %}
+                                    extendedProps: {
+                                        isMyTask: {% if t.assigned_to.id == user.id %}true{% else %}false{% endif %},
+                                        assignedUser: '{{ t.assigned_to.username }}',
+                                        predecessor_id: {% if t.predecessor %}{{ t.predecessor.id }}{% else %}null{% endif %}
+                                    }
                                 },
                             {% endfor %}
                         ],
-
-                        eventDrop: function (info) {
-                            let id = info.event.id;
-                            let year = info.event.start.getFullYear();
-                            let month = info.event.start.getMonth() + 1;
-                            let day = info.event.start.getDate()
-                            console.log(id, `${year}-${month}-${day}`)
-
-                            jQuery.ajax(`/boards/${id}/task`, {
-                                headers: {"X-CSRFToken": $(`{% csrf_token %}`).val()},
-                                type: 'POST',
-                                data: {
-                                    "_token": "{{ csrf_token }}",
-                                    type: "edit_end_time",
-                                    task_id: id,
-                                    new_end_time: `${year}-${month}-${day}`
-                                },
-                                error: (data) => {
-                                    $('[data-switch=true]').bootstrapSwitch();
-                                    let content = {};
-                                    content.message = data.responseJSON.error;
-                                    $.notify(content, {
-                                        type: 'danger',
-                                        placement: {
-                                            from: 'bottom',
-                                            align: 'left'
-                                        },
-                                        offset: {
-                                            x: 30,
-                                            y: 30
-                                        },
-                                    });
-                                }
-                            });
-                        },
-
-                        eventRender: function (info) {
-                            var element = $(info.el);
-
-                            if (info.event.extendedProps && info.event.extendedProps.description) {
-                                if (element.hasClass('fc-day-grid-event')) {
-                                    element.data('content', info.event.extendedProps.description);
-                                    element.data('placement', 'top');
-                                    KTApp.initPopover(element);
-                                } else if (element.hasClass('fc-time-grid-event')) {
-                                    element.find('.fc-title').append('<div class="fc-description">' + info.event.extendedProps.description + '</div>');
-                                } else if (element.find('.fc-list-item-title').lenght !== 0) {
-                                    element.find('.fc-list-item-title').append('<div class="fc-description">' + info.event.extendedProps.description + '</div>');
-                                }
-                            }
+                        eventDidMount: function(info) {
+                            // Добавляем tooltip или иконку, если нужно
                         }
                     });
+                    console.log("📅 События календаря:", calendar.getEvents().map(e => ({
+                        id: e.id,
+                        title: e.title,
+                        predecessor: e.extendedProps.predecessor_id
+                    })));
+
 
                     calendar.render();
                 }
             };
         }();
+
 
         jQuery(document).ready(function () {
             KTKanbanBoardDemo.init();
@@ -758,6 +783,11 @@
                 });
 
             });
-        
+        $(document).ready(function() {
+            // Initialize Select2 for Predecessor Task and User dropdowns
+            $('#kt_select2_4, #kt_select2_3').select2({
+                width: '100%',
+            });
+        });
     </script>
 {% endblock %}
