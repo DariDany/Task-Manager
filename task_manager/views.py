@@ -10,7 +10,36 @@ from django.views import View
 
 from reports.models import ProjectInfo
 from .models import Task, Project
+from users.models import Profile
 from django.urls import reverse
+
+def user_is_admin(user):
+    """
+    Повертає True, якщо у користувача глобальна роль ADMIN.
+    Використовується на сторінці 'My tasks' та в інших місцях.
+    """
+    try:
+        return hasattr(user, "profile") and user.profile.role == Profile.Role.ADMIN
+    except Profile.DoesNotExist:
+        return False
+    
+def is_admin_for_project(user, project):
+    """
+    Користувач вважається адміном, якщо:
+    - має роль ADMIN у профілі, АБО
+    - є власником конкретного проекту.
+    """
+    try:
+        # глобальна роль
+        if hasattr(user, "profile") and getattr(user.profile, "role", None) == "ADMIN":
+            return True
+    except Exception:
+        # на випадок, якщо профілю нема
+        pass
+
+    # адмін проєкту (старе правило з оригінального коду)
+    return project.owner_id == user.id
+
 
 
 class Projects(View):
@@ -59,11 +88,28 @@ class Projects(View):
 
 class ManageProject(View):
     def post(self, request, id):
-        Project.objects.filter(id=id).delete()
+        #  1) Перевірка, що користувач взагалі залогінений
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Invalid User"}, status=403)
 
-        response = JsonResponse({"message": "OK"})
-        response.status_code = 200
-        return response
+        #  2) Шукаємо проєкт
+        project = Project.objects.filter(id=id).first()
+        if not project:
+            return JsonResponse({"error": "Project Not Found"}, status=404)
+
+        #  3) Право на видалення мають:
+        #   - глобальний адмін (user_is_admin)
+        #   - власник цього проєкту
+        if not (user_is_admin(request.user) or project.owner_id == request.user.id):
+            return JsonResponse(
+                {"error": "You do not have permission to delete this project."},
+                status=403
+            )
+
+        #  4) Якщо все ОК — видаляємо
+        project.delete()
+        return JsonResponse({"message": "OK"}, status=200)
+
 
 
 class Tasks(View):
@@ -114,65 +160,96 @@ class Tasks(View):
 class ManageTasks(View):
     def post(self, request, id):
         if not request.user.is_authenticated:
-            response = JsonResponse({"error": "Invalid User"})
-            response.status_code = 403
-            return response
+            return JsonResponse({"error": "Invalid User"}, status=403)
 
+        type_ = request.POST.get("type")
+
+        # ---- ДЛЯ AJAX-перевірки доступу з Kanban ----
+        if type_ == "check_access":
+            task_id = request.POST.get("task_id")
+            task = (
+                Task.objects
+                .select_related("project", "assigned_to")
+                .filter(id=task_id)
+                .first()
+            )
+            if not task:
+                return JsonResponse({"allowed": False, "error": "Task Not Found"}, status=404)
+
+            admin_for_project = is_admin_for_project(request.user, task.project)
+            allowed = admin_for_project or (task.assigned_to_id == request.user.id)
+
+            return JsonResponse({"allowed": allowed})
+
+        # далі йде твій старий код з type_ == 'edit_status' / 'edit_end_time'
         user = request.user
 
-        type = request.POST['type']
-        if type == 'edit_status':
-            task_id = request.POST['task_id']
-            status = request.POST['board_id']
+        # ---------------- type == edit_status (drag & drop на дошці) ----------------
+        if type_ == 'edit_status':
+            task_id = request.POST.get('task_id')
+            new_status = request.POST.get('board_id')  # колонка, куди перетягнули
 
-            task = Task.objects.filter(id=task_id).first()
+            task = (
+                Task.objects
+                .select_related('project', 'assigned_to')
+                .filter(id=task_id)
+                .first()
+            )
+            if not task:
+                return JsonResponse({"error": "Task Not Found"}, status=404)
 
-            if status in ['O', 'B', 'L'] or task.status in ['O', 'B', 'L']:
-                if user == task.project.owner:
-                    task.status = status
-                    task.save()
+            admin_for_project = is_admin_for_project(user, task.project)
 
-                else:
-                    response = JsonResponse(
-                        {"error": "You Do Not Have Permission"})
-                    response.status_code = 403
-                    return response
+            # Колонки, які можуть міняти тільки адміни (Done/Blocked/Deleted)
+            if new_status in ['O', 'B', 'L'] or task.status in ['O', 'B', 'L']:
+                if not admin_for_project:
+                    return JsonResponse({"error": "You Do Not Have Permission"}, status=403)
+
+                task.status = new_status
+                task.save()
             else:
-                if user == task.assigned_to or user == task.project.owner:
-                    task.status = status
-                    if status == 'D':
-                        task.start_time = datetime.datetime.today().date()
-                    task.save()
-                else:
-                    response = JsonResponse(
-                        {"error": "You Do Not Have Permission"})
-                    response.status_code = 403
-                    return response
+                # Інші статуси (T, D, I...) – може змінювати:
+                # - виконавець задачі, АБО
+                # - адмін (глобальний чи власник проєкту)
+                if task.assigned_to_id != user.id and not admin_for_project:
+                    return JsonResponse({"error": "You Do Not Have Permission"}, status=403)
 
-            response = JsonResponse({"message": "OK"})
-            response.status_code = 200
-            return response
+                task.status = new_status
 
-        if type == 'edit_end_time':
+                if new_status == 'D' and not task.start_time:
+                    task.start_time = datetime.datetime.today().date()
 
-            task_id = request.POST['task_id']
-            end_time = request.POST['new_end_time']
-
-            task = Task.objects.filter(id=task_id).first()
-
-            if user == task.project.owner:
-                task.end_time = end_time
                 task.save()
 
-                response = JsonResponse({"message": "OK"})
-                response.status_code = 200
-                return response
+            return JsonResponse({"message": "OK"}, status=200)
 
-            else:
-                response = JsonResponse(
-                    {"error": "You Do Not Have Permission"})
-                response.status_code = 403
-                return response
+        # ---------------- type == edit_end_time (drag в календарі) ----------------
+        if type_ == 'edit_end_time':
+            task_id = request.POST.get('task_id')
+            end_time = request.POST.get('new_end_time')
+
+            task = (
+                Task.objects
+                .select_related('project')
+                .filter(id=task_id)
+                .first()
+            )
+            if not task:
+                return JsonResponse({"error": "Task Not Found"}, status=404)
+
+            admin_for_project = is_admin_for_project(user, task.project)
+
+            if not admin_for_project:
+                return JsonResponse({"error": "You Do Not Have Permission"}, status=403)
+
+            task.end_time = end_time
+            task.save()
+
+            return JsonResponse({"message": "OK"}, status=200)
+
+        return JsonResponse({"error": "Invalid Request Type"}, status=400)
+
+
             
 class MyTasksAll(View):
     def get(self, request):
@@ -189,69 +266,80 @@ class MyTasksAll(View):
         return render(request, 'my_tasks_all.html', ctx)
     
 class ToggleTask(View):
-    """Перемикання статусу задачі з чекбокса (між To Do 'T' і Done 'O')."""
-    def post(self, request, id):
+    def post(self, request):
         if not request.user.is_authenticated:
             return redirect('signIn')
 
-        task = Task.objects.select_related('project').filter(id=id).first()
-        if not task:
-            return redirect('my_tasks_all')
+        user = request.user
+        is_admin = user_is_admin(user)
 
-        # дозволяємо змінювати лише виконавцю або власнику проєкту
-        if task.assigned_to != request.user and task.project.owner != request.user:
-            return redirect('my_tasks_all')
+        task_id = request.POST.get('task_id')
+        next_url = request.POST.get('next', 'my_tasks_all')
 
-        done_checked = (request.POST.get('done') == 'on')
-        task.status = 'O' if done_checked else 'T'
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            messages.error(request, "Задачу не знайдено.")
+            return redirect(next_url)
+
+        # 🔐 ДОСТУП:
+        #  - адмін: може змінювати будь-яку задачу
+        #  - співробітник: тільки якщо він виконавець цієї задачі
+        if not is_admin and task.assigned_to != user:
+            messages.error(request, "Ви можете змінювати тільки власні задачі.")
+            return redirect(next_url)
+
+        # далі – твоя стара логіка перемикання статусу (T <-> O або щось подібне)
+        if task.status == 'T':
+            task.status = 'O'
+        else:
+            task.status = 'T'
+
         task.save()
 
-        # повертаємось туди, звідки прийшли (якщо передали), або на my_tasks_all
-        next_url = request.POST.get('next')
-        if next_url:
-            return redirect(next_url)
-        return redirect('my_tasks_all')
+        return redirect(next_url)
+    
 class SetTaskStatus(View):
-    """
-    Change task status from the My Tasks page.
-
-    Accepts either:
-      - checkbox 'done' (on/off)  -> sets 'O' or 'T'
-      - select 'new_status' in {'T','D','I','O'}
-
-    Only the assignee OR the project owner may change it.
-    """
-    ALLOWED = {'T', 'D', 'I', 'O'}  # To Do, Doing, In Test, Done
+    ALLOWED = {'T', 'D', 'I', 'O'}   # як у тебе було
 
     def post(self, request, id):
         if not request.user.is_authenticated:
             return redirect('signIn')
 
-        task = Task.objects.select_related('project', 'assigned_to').filter(id=id).first()
-        if not task:
-            return redirect('my_tasks_all')
+        user = request.user
+        is_admin = user_is_admin(user)
 
-        if task.assigned_to != request.user and task.project.owner != request.user:
-            return redirect('my_tasks_all')
+        # У тебе в POST зараз поле називається new_status, а не status
+        status = request.POST.get('status') or request.POST.get('new_status')
+        next_url = request.POST.get('next', 'my_tasks_all')
 
-        # 1) handle checkbox "done"
-        if request.POST.get('done') is not None:
-            done_checked = (request.POST.get('done') == 'on')
-            new_status = 'O' if done_checked else 'T'
-        else:
-            # 2) handle dropdown "new_status"
-            new_status = request.POST.get('new_status', '').strip()
+        if status not in self.ALLOWED:
+           messages.error(request, "Invalid task status.")
+           return redirect(next_url)
 
-        if new_status not in self.ALLOWED:
-            return redirect('my_tasks_all')
+        # беремо task_id з POST, а якщо його немає – з URL (id)
+        task_id = request.POST.get('task_id') or id
 
-        # convenience: set/clear start_time when moving to Doing/To Do
-        if new_status == 'D' and not task.start_time:
-            task.start_time = datetime.date.today()
-        if new_status == 'T':
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            messages.error(request, "The task is not found.")
+            return redirect(next_url)
+
+        # 🔐 ДОСТУП:
+        if not is_admin and task.assigned_to != user:
+            messages.error(request, "You do not have permission to modify another employee's task.")
+            return redirect(next_url)
+
+        old_status = task.status
+        task.status = status
+
+        if status == 'D' and task.start_time is None:
+            from datetime import datetime
+            task.start_time = datetime.now()
+        if status == 'T':
             task.start_time = None
 
-        task.status = new_status
         task.save()
 
-        return redirect(request.POST.get('next') or 'my_tasks_all')
+        return redirect(next_url)
