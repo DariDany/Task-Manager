@@ -22,6 +22,7 @@ def user_is_admin(user):
         return hasattr(user, "profile") and user.profile.role == Profile.Role.ADMIN
     except Profile.DoesNotExist:
         return False
+    
 def is_admin_for_project(user, project):
     """
     Користувач вважається адміном, якщо:
@@ -87,11 +88,28 @@ class Projects(View):
 
 class ManageProject(View):
     def post(self, request, id):
-        Project.objects.filter(id=id).delete()
+        #  1) Перевірка, що користувач взагалі залогінений
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Invalid User"}, status=403)
 
-        response = JsonResponse({"message": "OK"})
-        response.status_code = 200
-        return response
+        #  2) Шукаємо проєкт
+        project = Project.objects.filter(id=id).first()
+        if not project:
+            return JsonResponse({"error": "Project Not Found"}, status=404)
+
+        #  3) Право на видалення мають:
+        #   - глобальний адмін (user_is_admin)
+        #   - власник цього проєкту
+        if not (user_is_admin(request.user) or project.owner_id == request.user.id):
+            return JsonResponse(
+                {"error": "You do not have permission to delete this project."},
+                status=403
+            )
+
+        #  4) Якщо все ОК — видаляємо
+        project.delete()
+        return JsonResponse({"message": "OK"}, status=200)
+
 
 
 class Tasks(View):
