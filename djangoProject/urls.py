@@ -19,6 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 
 urlpatterns = [
+    path('admin/', admin.site.urls),
     path('', include('users.urls')),  # маршрут юзерс
     path('boards/', include('task_manager.urls')),  # маршрут таск менеджера
     path('report/', include('reports.urls'))  # маршрут репорту

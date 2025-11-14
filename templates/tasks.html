@@ -260,6 +260,25 @@
 
     <script>
         "use strict";
+        // Беремо projectId із шаблону
+        const PROJECT_ID = {{ proj.id }};
+
+        // Стандартна Django-функція для CSRF з cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
         // Class definition
         var KTKanbanBoardDemo = function () {
@@ -279,29 +298,33 @@
             const taskMap = new Map(allTasks.map(task => [task.id, task]));
 
             // Helper function to update task status via AJAX
+                       // Helper function to update task status via AJAX
             const updateTaskStatusOnServer = (taskId, newBoardId) => {
-                jQuery.ajax(`/boards/${taskId}/task`, {
-                    headers: {"X-CSRFToken": $(`{% csrf_token %}`).val()},
-                    type: 'POST',
+                $.ajax({
+                    url: `/boards/${PROJECT_ID}/task`,
+                    type: "POST",
+                    headers: { "X-CSRFToken": getCookie("csrftoken") },
                     data: {
                         type: "edit_status",
                         task_id: taskId,
                         board_id: newBoardId
                     },
-                    success: function() {
-                        // Update local map on successful server update
+                    success: function () {
                         const task = taskMap.get(taskId.toString());
                         if (task) {
                             task.status = newBoardId;
                         }
-                        console.log(`✅ Task ${taskId} status updated to ${newBoardId} on server.`);
+                        console.log(`Task ${taskId} status updated to ${newBoardId} on server.`);
                     },
-                    error: function() {
-                        console.error(`❌ Failed to update status for task ${taskId}.`);
-                        // Optionally, revert the change in the UI or show an error
+                    error: function (xhr) {
+                        console.error(` Failed to update status for task ${taskId}.`, xhr.responseText);
+
+                        // Якщо бекенд відмовив — можна перезавантажити сторінку, або повернути картку
+                        // location.reload();
                     }
                 });
             };
+
 
             var _demo4 = function () {
                 var kanban = new jKanban({
@@ -311,20 +334,19 @@
                         let eid = $(el).data("eid");
                         $(`#task-details-${eid}`).modal('show');
                     },
-                    dropEl: function (el, target, source, sibling) {
+                       dropEl: function (el, target, source, sibling) {
                         const taskId = $(el).data("eid").toString();
                         const sourceBoardId = $(source).parent().data("id");
                         const targetBoardId = $(target).parent().data("id");
 
-                        // If the task is being moved from "To Do" to any other column
+                        // ---- 1) СПОЧАТКУ ЛОГІКА PREDECESSOR ----
                         if (sourceBoardId === 'T' && targetBoardId !== 'T') {
                             const task = taskMap.get(taskId);
                             if (task && task.predecessor_id) {
                                 const predecessor = taskMap.get(task.predecessor_id);
 
-                                // Check if the predecessor exists and is NOT in the "Done" column ('O')
+                                // якщо є predecessor і він НЕ Done
                                 if (predecessor && predecessor.status !== 'O') {
-                                    // Show an error notification
                                     $.notify({
                                         message: `Cannot move this task. Its predecessor "${predecessor.name}" is not yet "Done".`
                                     }, {
@@ -333,51 +355,89 @@
                                         offset: { x: 30, y: 30 },
                                     });
 
-                                    // Manually move the element back to the source board
-                                    // This is a smoother way to cancel the drag operation
+                                    // Повертаємо картку назад у вихідну колонку
                                     kanban.removeElement(taskId);
-                                    kanban.addElement('T', { id: taskId, title: el.innerHTML });
+                                    kanban.addElement(sourceBoardId, { id: taskId, title: el.innerHTML });
 
-                                    // Set a flag to prevent the dragendEl event from firing
+                                    // Щоб dragendEl не викликав updateTaskStatusOnServer
                                     $(el).data('move-cancelled', true);
-                                    return; // Stop further execution
+                                    return;
                                 }
                             }
                         }
 
-                        // --- NEW LOGIC ---
-                        // If a task is moved OUT of "Done"
+                        // ---- 2) ТЕПЕР ПЕРЕВІРКА ДОСТУПУ (check_access) ----
+                        let accessDenied = false;
+
+                        $.ajax({
+                            url: `/boards/${PROJECT_ID}/task`,
+                            type: "POST",
+                            async: false, // чекаємо відповіді перед фінальним переміщенням
+                            headers: { "X-CSRFToken": getCookie("csrftoken") },
+                            data: {
+                                type: "check_access",
+                                task_id: taskId
+                            },
+                            success: function (r) {
+                                if (r.allowed === false) {
+                                    accessDenied = true;
+                                }
+                            },
+                            error: function () {
+                                accessDenied = true;
+                            }
+                        });
+
+                        if (accessDenied) {
+                            $.notify({
+                                message: "You do not have permission to modify another employee's task."
+                            }, {
+                                type: 'danger',
+                                placement: { from: 'bottom', align: 'left' },
+                                offset: { x: 30, y: 30 },
+                            });
+
+                            // Повертаємо картку назад
+                            kanban.removeElement(taskId);
+                            kanban.addElement(sourceBoardId, { id: taskId, title: el.innerHTML });
+
+                            $(el).data('move-cancelled', true);
+                            return;
+                        }
+
+                        // ---- 3) ЛОГІКА ДЛЯ REOPEN DONE ----
                         if (sourceBoardId === 'O' && targetBoardId !== 'O') {
-                            // Find all tasks that depend on the moved task
                             taskMap.forEach(dependentTask => {
                                 if (dependentTask.predecessor_id === taskId && dependentTask.status !== 'T') {
                                     console.log(`Task "${dependentTask.name}" depends on the reopened task. Moving it to "To Do".`);
-                                    
-                                    // Find the DOM element to get its content
+
                                     const dependentEl = kanban.findElement(dependentTask.id);
                                     if (dependentEl) {
-                                        // Move the element visually
                                         kanban.removeElement(dependentTask.id);
-                                        kanban.addElement('T', { id: dependentTask.id, title: dependentEl.innerHTML });
-                                        // Update its status on the server
+                                        kanban.addElement('T', {
+                                            id: dependentTask.id,
+                                            title: dependentEl.innerHTML
+                                        });
                                         updateTaskStatusOnServer(dependentTask.id, 'T');
 
-                                        // Show a notification for the automatic move
                                         $.notify({
                                             message: `Task "${dependentTask.name}" moved to "To Do" as its dependency was reopened.`
                                         }, {
                                             type: 'info',
                                             placement: { from: 'bottom', align: 'left' },
                                             offset: { x: 30, y: 30 },
-                                            delay: 5000 // Show for 5 seconds
+                                            delay: 5000
                                         });
                                     }
                                 }
                             });
                         }
-                        // If move is valid, clear the flag
+
+                        // якщо все ок — даємо dragendEl відправити update на сервер
                         $(el).data('move-cancelled', false);
                     },
+
+
                     boards: [
                         {
                             'id': 'T',

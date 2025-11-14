@@ -80,53 +80,53 @@ class SignOut(View):
         return redirect('signIn')
 
 
+
 class ProfileView(View):
     def get(self, request):
         if not request.user.is_authenticated:
             return redirect('signIn')
 
-        first_letter = request.user.username[0].upper() if request.user.username else ""
-        return render(request, 'profile.html', {"user": request.user, "first": first_letter})
+        # 👇 Гарантуємо, що у користувача є Profile
+        Profile.objects.get_or_create(user=request.user)
+
+        return render(request, 'profile.html', {})
 
     def post(self, request):
         if not request.user.is_authenticated:
             return redirect('signIn')
 
-        User = get_user_model()
         user = request.user
+        # 👇 тут теж гарантуємо наявність Profile
+        profile, created = Profile.objects.get_or_create(user=user)
 
-        new_username = request.POST.get("username", "").strip()
-        new_email = request.POST.get("email", "").strip()
-        new_password = request.POST.get("password", "")
-        avatar = request.FILES.get("profile_photo")
+        avatar = request.FILES.get('profile_photo')
+        if avatar:
+            profile.profile_photo = avatar
+            profile.save()
 
-        # Check username uniqueness (excluding current user)
+        new_username = request.POST.get('username', '').strip()
+        new_email = request.POST.get('email', '').strip()
+        new_password = request.POST.get('password', '').strip()
+
+        # 🔹 username – не даємо зробити порожнім
         if new_username and new_username != user.username:
-            if User.objects.filter(username__iexact=new_username).exclude(pk=user.pk).exists():
-                messages.error(request, "This username is already in use.")
-                return redirect("profile")
-            user.username = new_username
+            if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                messages.error(request, "Користувач з таким ім'ям вже існує.")
+            else:
+                user.username = new_username
 
-        # Check email uniqueness (excluding current user)
-        if new_email and new_email.lower() != (user.email or "").lower():
-            if User.objects.filter(email__iexact=new_email).exclude(pk=user.pk).exists():
-                messages.error(request, "An account with this email already exists.")
-                return redirect("profile")
-            user.email = new_email
+        # 🔹 email – опціональний, але якщо не порожній, то перевіряємо унікальність
+        if new_email != user.email:
+            if new_email and User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                messages.error(request, "Користувач з таким email вже існує.")
+            else:
+                user.email = new_email
 
-        password_changed = False
+        # 🔹 пароль – тільки якщо щось ввели
         if new_password:
             user.set_password(new_password)
-            password_changed = True
-
-        if avatar:
-            user.profile.profile_photo = avatar
 
         user.save()
-        user.profile.save()
 
-        if password_changed:
-            update_session_auth_hash(request, user)
-
-        messages.success(request, "Profile updated successfully.")
-        return redirect("boards")
+        messages.success(request, "Профіль успішно оновлено.")
+        return redirect('profile')
