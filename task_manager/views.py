@@ -7,11 +7,13 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.views import View
+from django.contrib import messages
 
 from reports.models import ProjectInfo
 from .models import Task, Project
 from users.models import Profile
 from django.urls import reverse
+
 
 def user_is_admin(user):
     """
@@ -22,7 +24,8 @@ def user_is_admin(user):
         return hasattr(user, "profile") and user.profile.role == Profile.Role.ADMIN
     except Profile.DoesNotExist:
         return False
-    
+
+
 def is_admin_for_project(user, project):
     """
     Користувач вважається адміном, якщо:
@@ -39,7 +42,6 @@ def is_admin_for_project(user, project):
 
     # адмін проєкту (старе правило з оригінального коду)
     return project.owner_id == user.id
-
 
 
 class Projects(View):
@@ -111,7 +113,6 @@ class ManageProject(View):
         return JsonResponse({"message": "OK"}, status=200)
 
 
-
 class Tasks(View):
     def get(self, request, id):
         if not request.user.is_authenticated:
@@ -176,8 +177,10 @@ class ManageTasks(View):
             if not task:
                 return JsonResponse({"allowed": False, "error": "Task Not Found"}, status=404)
 
-            admin_for_project = is_admin_for_project(request.user, task.project)
-            allowed = admin_for_project or (task.assigned_to_id == request.user.id)
+            admin_for_project = is_admin_for_project(
+                request.user, task.project)
+            allowed = admin_for_project or (
+                task.assigned_to_id == request.user.id)
 
             return JsonResponse({"allowed": allowed})
 
@@ -187,7 +190,8 @@ class ManageTasks(View):
         # ---------------- type == edit_status (drag & drop на дошці) ----------------
         if type_ == 'edit_status':
             task_id = request.POST.get('task_id')
-            new_status = request.POST.get('board_id')  # колонка, куди перетягнули
+            # колонка, куди перетягнули
+            new_status = request.POST.get('board_id')
 
             task = (
                 Task.objects
@@ -250,7 +254,6 @@ class ManageTasks(View):
         return JsonResponse({"error": "Invalid Request Type"}, status=400)
 
 
-            
 class MyTasksAll(View):
     def get(self, request):
         if not request.user.is_authenticated:
@@ -258,13 +261,15 @@ class MyTasksAll(View):
 
         tasks = (
             Task.objects
-                .select_related('project')
-                .filter(assigned_to=request.user)
-                .order_by('status', 'end_time', 'project__name', 'id')
+            .select_related('project')
+            .filter(assigned_to=request.user)
+            .order_by('status', 'end_time', 'project__name', 'id')
         )
-        ctx = {"user": request.user, "first": request.user.username[0], "tasks": tasks}
+        ctx = {"user": request.user,
+               "first": request.user.username[0], "tasks": tasks}
         return render(request, 'my_tasks_all.html', ctx)
-    
+
+
 class ToggleTask(View):
     def post(self, request):
         if not request.user.is_authenticated:
@@ -286,7 +291,8 @@ class ToggleTask(View):
         #  - адмін: може змінювати будь-яку задачу
         #  - співробітник: тільки якщо він виконавець цієї задачі
         if not is_admin and task.assigned_to != user:
-            messages.error(request, "Ви можете змінювати тільки власні задачі.")
+            messages.error(
+                request, "Ви можете змінювати тільки власні задачі.")
             return redirect(next_url)
 
         # далі – твоя стара логіка перемикання статусу (T <-> O або щось подібне)
@@ -298,7 +304,8 @@ class ToggleTask(View):
         task.save()
 
         return redirect(next_url)
-    
+
+
 class SetTaskStatus(View):
     ALLOWED = {'T', 'D', 'I', 'O'}   # як у тебе було
 
@@ -314,8 +321,8 @@ class SetTaskStatus(View):
         next_url = request.POST.get('next', 'my_tasks_all')
 
         if status not in self.ALLOWED:
-           messages.error(request, "Invalid task status.")
-           return redirect(next_url)
+            messages.error(request, "Invalid task status.")
+            return redirect(next_url)
 
         # беремо task_id з POST, а якщо його немає – з URL (id)
         task_id = request.POST.get('task_id') or id
@@ -328,7 +335,8 @@ class SetTaskStatus(View):
 
         # 🔐 ДОСТУП:
         if not is_admin and task.assigned_to != user:
-            messages.error(request, "You do not have permission to modify another employee's task.")
+            messages.error(
+                request, "You do not have permission to modify another employee's task.")
             return redirect(next_url)
 
         old_status = task.status
