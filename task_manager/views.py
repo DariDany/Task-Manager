@@ -46,45 +46,62 @@ def is_admin_for_project(user, project):
 
 class Projects(View):
     def get(self, request):
+        # якщо користувач не залогінений — перекидаємо на сторінку входу
         if not request.user.is_authenticated:
             return redirect('signIn')
 
         user = request.user
+        # завантажуємо всі проєкти з БД
         projects = Project.objects.all()
         list = []
 
+        # фільтруємо проєкти, в яких користувач є власником або учасником
         for p in projects:
             if p.owner == user or user.id in p.get_members():
                 list.append(ProjectInfo(p))
 
-        data = {"user": user,
-                "first": user.username[0],
-                "other_users": User.objects.filter(~Q(id=user.id)).all(),
-                "projects": list,
-                }
+        # дані для шаблону
+        data = {
+            "user": user,
+            "first": user.username[0],  # перша буква імені для аватарки/показу
+            "other_users": User.objects.filter(~Q(id=user.id)).all(),  # інші користувачі
+            "projects": list,  # список доступних проєктів
+        }
         return render(request, 'projects.html', data)
 
     def post(self, request):
+        # якщо користувач не залогінений — перекидаємо на сторінку входу
         if not request.user.is_authenticated:
             return redirect('signIn')
 
+        # отримуємо дані з форми
         name = request.POST['name']
         description = request.POST['desc']
         details = request.POST['details']
         owner = request.user
-        user_ids = request.POST.getlist('users', [])
+        user_ids = request.POST.getlist('users', [])  # список id вибраних користувачів
 
+        # перетворюємо id в інти
         ids = []
         for id in user_ids:
             ids.append(int(id))
 
+        # вибираємо випадкове фото профілю проєкту
         n = random.randint(1, 7)
         pf_url = f'/media/project-logos/{n}.png'
 
-        proj = Project.objects.create(name=name, description=description, details=details, owner=owner,
-                                      members=json.dumps(ids), profile_photo=pf_url)
+        # створюємо новий проєкт і зберігаємо
+        proj = Project.objects.create(
+            name=name,
+            description=description,
+            details=details,
+            owner=owner,
+            members=json.dumps(ids),  # зберігаємо список учасників як JSON
+            profile_photo=pf_url
+        )
         proj.save()
 
+        # після створення повертаємо на список дошок
         return redirect('boards')
 
 

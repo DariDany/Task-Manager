@@ -1,10 +1,12 @@
 from django.urls import path
 from .views import SignIn, SignUp, index, SignOut, ProfileView
+from task_manager import views as task_views
 
 urlpatterns = [
     path('', index, name='index'),
     path('signIn', SignIn.as_view(), name="signIn"),
     path('signUp', SignUp.as_view(), name='signUp'),
-    path('signOut', SignOut.as_view(), name='signOut'),
+    path('signOut', SignOut.as_view()),
     path("profile/", ProfileView.as_view(), name="profile"),
+    path('boards/', task_views.Projects.as_view(), name='boards'),
 ]

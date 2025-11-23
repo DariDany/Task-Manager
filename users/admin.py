@@ -1,3 +1,5 @@
+# Налаштування відображення профілів у Django Admin
+
 from django.contrib import admin
 from .models import Profile
 

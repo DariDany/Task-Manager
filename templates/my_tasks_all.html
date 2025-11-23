@@ -5,28 +5,35 @@
 
 {% block content %}
 <div class="container mt-10">
+  <!-- Заголовок сторінки та кнопка повернення до всіх дошок -->
   <div class="d-flex align-items-center mb-6">
     <h2 class="text-white font-weight-bold my-2 mr-5">My tasks</h2>
     <a class="btn btn-sm btn-light ml-3" href="{% url 'boards' %}">All Boards</a>
   </div>
 
+  <!-- Перевірка чи є завдання -->
   {% if tasks %}
+    <!-- Групуємо завдання за проєктом -->
     {% regroup tasks by project as project_groups %}
 
+    <!-- Проходимо по кожному групованому проєкту -->
     {% for group in project_groups %}
       <div class="card card-custom mb-6 shadow-sm">
         <div class="card-header d-flex align-items-center justify-content-between">
           <div>
+            <!-- Назва та опис проєкту -->
             <h4 class="card-title font-weight-bold mb-1 text-primary">Project: {{ group.grouper.name }}</h4>
             <span class="badge badge-purple text-uppercase px-3 py-1">{{ group.grouper.description }}</span>
           </div>
+          <!-- Кнопка відкрити дошку проєкту -->
           <a class="btn btn-sm btn-outline-primary" href="{% url 'tasks' group.grouper.id %}">Open Board</a>
         </div>
 
         <ul class="list-group list-group-flush">
+          <!-- Список завдань в проєкті -->
           {% for t in group.list %}
             <li class="list-group-item d-flex justify-content-between align-items-start flex-column flex-sm-row">
-              <!-- CHECKBOX -->
+              <!-- CHECKBOX: зміна статусу Done -->
               <form action="{% url 'set_task_status' t.id %}" method="post" id="done-form-{{ t.id }}" class="mr-3 mt-1">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{% url 'my_tasks_all' %}">
@@ -35,11 +42,12 @@
                        {% if t.status == 'O' %}checked{% endif %}>
               </form>
 
-              <!-- TASK CONTENT -->
+              <!-- Вміст завдання: назва, статус, дії -->
               <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="font-weight-bold {% if t.status == 'O' %}text-muted{% endif %}">
                     {{ t.name }}
+                    <!-- Бейдж зі статусом -->
                     <span class="badge ml-2
                         {% if t.status == 'T' %}badge-warning
                         {% elif t.status == 'D' %}badge-primary
@@ -49,7 +57,7 @@
                       {{ t.get_status_display }}
                     </span>
                   </div>
-                  <!-- DROPDOWN -->
+                  <!-- DROPDOWN: вибір нового статусу -->
                   <form action="{% url 'set_task_status' t.id %}" method="post" class="d-inline-block ml-3">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{% url 'my_tasks_all' %}">
@@ -63,10 +71,10 @@
                   </form>
                 </div>
 
-                <!-- DESCRIPTION -->
+                <!-- Короткий опис завдання -->
                 <div class="text-muted small mt-1 mb-1">{{ t.description }}</div>
 
-                <!-- TASK META -->
+                <!-- Мета-інформація: виконавець, дати -->
                 <div class="d-flex flex-wrap small mt-1">
                   <div class="mr-3">
                     <span class="text-muted font-weight-bold">Assigned to:</span>
@@ -92,6 +100,7 @@
       </div>
     {% endfor %}
   {% else %}
+    <!-- Повідомлення, якщо завдань немає -->
     <div class="alert alert-light">You don’t have any assigned tasks yet.</div>
   {% endif %}
 </div>
