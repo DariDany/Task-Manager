@@ -51,25 +51,30 @@ class SignUp(View):
             return redirect('signIn')
 
         if User.objects.filter(username__iexact=username).exists():
-            messages.error(request, "This username is already taken. Please choose another one.")
+            messages.error(
+                request, "This username is already taken. Please choose another one.")
             return redirect('signIn')
 
         if email and User.objects.filter(email__iexact=email).exists():
-            messages.error(request, "An account with this email already exists.")
+            messages.error(
+                request, "An account with this email already exists.")
             return redirect('signIn')
 
         try:
-            user = User.objects.create_user(username=username, email=email, password=password)
+            user = User.objects.create_user(
+                username=username, email=email, password=password)
             Profile.objects.create(user=user)
             login(request, user)
             messages.success(request, "Account created successfully!")
             return redirect('boards')
 
         except IntegrityError:
-            messages.error(request, "A user with these details already exists.")
+            messages.error(
+                request, "A user with these details already exists.")
             return redirect('signIn')
         except Exception:
-            messages.error(request, "An error occurred during registration. Please try again.")
+            messages.error(
+                request, "An error occurred during registration. Please try again.")
             return redirect('signIn')
 
 
@@ -80,13 +85,12 @@ class SignOut(View):
         return redirect('signIn')
 
 
-
 class ProfileView(View):
     def get(self, request):
         if not request.user.is_authenticated:
             return redirect('signIn')
 
-        # 👇 Гарантуємо, що у користувача є Profile
+        # Гарантуємо, що у користувача є Profile
         Profile.objects.get_or_create(user=request.user)
 
         return render(request, 'profile.html', {})
@@ -96,9 +100,10 @@ class ProfileView(View):
             return redirect('signIn')
 
         user = request.user
-        # 👇 тут теж гарантуємо наявність Profile
+        # тут теж гарантуємо наявність Profile
         profile, created = Profile.objects.get_or_create(user=user)
 
+        # Отримуємо завантажений файл з форми.
         avatar = request.FILES.get('profile_photo')
         if avatar:
             profile.profile_photo = avatar
@@ -108,21 +113,21 @@ class ProfileView(View):
         new_email = request.POST.get('email', '').strip()
         new_password = request.POST.get('password', '').strip()
 
-        # 🔹 username – не даємо зробити порожнім
+        # username – не даємо зробити порожнім
         if new_username and new_username != user.username:
             if User.objects.filter(username=new_username).exclude(id=user.id).exists():
                 messages.error(request, "Користувач з таким ім'ям вже існує.")
             else:
                 user.username = new_username
 
-        # 🔹 email – опціональний, але якщо не порожній, то перевіряємо унікальність
+        # email – опціональний, але якщо не порожній, то перевіряємо унікальність
         if new_email != user.email:
             if new_email and User.objects.filter(email=new_email).exclude(id=user.id).exists():
                 messages.error(request, "Користувач з таким email вже існує.")
             else:
                 user.email = new_email
 
-        # 🔹 пароль – тільки якщо щось ввели
+        # пароль – тільки якщо щось ввели
         if new_password:
             user.set_password(new_password)
 

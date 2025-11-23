@@ -253,6 +253,7 @@
 {% endblock %}
 
 {% block js %}
+    <!-- Підключаємо зовнішні JS-бібліотеки -->
     <script src="{% static '/plugins/custom/kanban/kanban.bundle.js' %}"></script>
     <script src="{% static '/plugins/custom/fullcalendar/fullcalendar.bundle.js' %}"></script>
     <script src="{% static '/js/pages/my-script.js' %}"></script>
@@ -339,7 +340,7 @@
                         const sourceBoardId = $(source).parent().data("id");
                         const targetBoardId = $(target).parent().data("id");
 
-                        // ---- 1) СПОЧАТКУ ЛОГІКА PREDECESSOR ----
+                        //  СПОЧАТКУ ЛОГІКА PREDECESSOR 
                         if (sourceBoardId === 'T' && targetBoardId !== 'T') {
                             const task = taskMap.get(taskId);
                             if (task && task.predecessor_id) {
@@ -366,7 +367,7 @@
                             }
                         }
 
-                        // ---- 2) ТЕПЕР ПЕРЕВІРКА ДОСТУПУ (check_access) ----
+                        // ПЕРЕВІРКА ДОСТУПУ 
                         let accessDenied = false;
 
                         $.ajax({
@@ -405,7 +406,7 @@
                             return;
                         }
 
-                        // ---- 3) ЛОГІКА ДЛЯ REOPEN DONE ----
+                        // ЛОГІКА ДЛЯ REOPEN DONE 
                         if (sourceBoardId === 'O' && targetBoardId !== 'O') {
                             taskMap.forEach(dependentTask => {
                                 if (dependentTask.predecessor_id === taskId && dependentTask.status !== 'T') {

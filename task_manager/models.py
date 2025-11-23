@@ -35,7 +35,7 @@ class Task(models.Model):
     end_time = models.DateField()
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
 
-    # 👇 нове поле:
+    # попередник:
     predecessor = models.ForeignKey(
         'self',                     # посилання на інший Task
         on_delete=models.SET_NULL,  # якщо попередник видалений, то null
